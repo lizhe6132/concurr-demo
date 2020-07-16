@@ -12,6 +12,7 @@ public class CompletedFutrueDemo {
     private static List<Mytask> tasks = new ArrayList<>(3);
     private static volatile boolean canceled = false;
     private static Executor executor = Executors.newFixedThreadPool(6);
+    private static ConcurrentHashMap<String, Boolean> canceledMap = new ConcurrentHashMap<>(3);
     public static void main(String[] args) throws IOException {
         Mytask task1 = new Mytask("task-1", 1, Result.SUCC);
         Mytask task2 = new Mytask("task-2", 2, Result.FAIL);
@@ -25,6 +26,7 @@ public class CompletedFutrueDemo {
                         callBack(result, task);
                     });
         });
+        canceledMap.clear();
         System.in.read();
     }
 
@@ -32,6 +34,7 @@ public class CompletedFutrueDemo {
         synchronized (tasks) {
             tasks.forEach(mytask -> {
                 if (result == Result.FAIL && !task.taskName.equals(mytask.taskName)) {
+                    canceled = true;
                     mytask.cancel();
                 }
             });
@@ -80,6 +83,10 @@ public class CompletedFutrueDemo {
         }
 
         public void cancel() {
+            if (canceledMap.get(taskName)) {
+                System.out.println(taskName + "已经cancel");
+                return;
+            }
             boolean canceling = true;
             synchronized (this) {
                 System.out.println(taskName + "canceling");
@@ -90,8 +97,8 @@ public class CompletedFutrueDemo {
                     e.printStackTrace();
                 }
                 System.out.println(taskName + "canceled");
+                canceledMap.put(taskName, true);
             }
-            canceled = true;
         }
     }
 }
